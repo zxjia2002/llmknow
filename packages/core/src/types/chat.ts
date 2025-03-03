@@ -90,6 +90,7 @@ export interface StandaloneChatProps extends BaseChatProps {
   mode: 'standalone';
   isOpen?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
+  onBack?: () => void;
 }
 
 /**

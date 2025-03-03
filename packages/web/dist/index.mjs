@@ -49,6 +49,8 @@ var ThemeProvider = ({
 
 // src/components/InlineChat.tsx
 import { useEffect as useEffect4, useState as useState3 } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import { useChatStore, DefaultContextManager } from "@llmknow/core";
 
 // src/styles/chat.module.css
@@ -181,12 +183,13 @@ var ChatInput = ({
 };
 
 // src/components/InlineChat.tsx
-import { jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
+import { Fragment, jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
+var SearchIcon = () => /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" }) });
+var CommandIcon = () => /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" }) });
 var InlineChat = ({
-  position = "right",
-  width = "360px",
+  width = "600px",
   height = "400px",
-  maxHeight = "500px",
+  maxHeight = "80vh",
   enableContext = true,
   engineConfig = {},
   theme: themeProp = "system",
@@ -195,14 +198,15 @@ var InlineChat = ({
   onStateChange,
   contextSelector
 }) => {
+  const [isOpen, setIsOpen] = useState3(false);
   const { setTheme } = useTheme();
-  useEffect4(() => {
-    setTheme(themeProp);
-  }, [themeProp, setTheme]);
   const [contextManager] = useState3(
     () => enableContext ? new DefaultContextManager(contextSelector) : null
   );
   const { messages, isLoading, error, sendMessage, sendContextualMessage } = useChatStore();
+  useEffect4(() => {
+    setTheme(themeProp);
+  }, [themeProp, setTheme]);
   useEffect4(() => {
     if (enableContext && contextManager) {
       const updateContext = () => {
@@ -218,13 +222,18 @@ var InlineChat = ({
     }
   }, [enableContext, contextManager]);
   useEffect4(() => {
-    onStateChange?.({ messages, isLoading, error });
-  }, [messages, isLoading, error, onStateChange]);
-  useEffect4(() => {
-    if (error) {
-      onError?.(error);
-    }
-  }, [error, onError]);
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const handleSendMessage = async (content) => {
     try {
       onMessage?.({ id: "", role: "user", content, timestamp: Date.now() });
@@ -238,131 +247,92 @@ var InlineChat = ({
       console.error("Error sending message:", err);
     }
   };
-  return /* @__PURE__ */ jsxs3(
-    "div",
-    {
-      className: chat_default.inlineChatContainer,
-      style: {
-        width,
-        height,
-        maxHeight,
-        ...position === "left" ? { left: 0 } : { right: 0 }
-      },
-      children: [
-        /* @__PURE__ */ jsx5(MessageList, { messages }),
-        /* @__PURE__ */ jsx5(
-          ChatInput,
-          {
-            onSendMessage: handleSendMessage,
-            isLoading
-          }
-        )
-      ]
-    }
-  );
+  return /* @__PURE__ */ jsxs3(Fragment, { children: [
+    /* @__PURE__ */ jsx5("div", { className: chat_default.searchContainer, onClick: () => setIsOpen(true), children: /* @__PURE__ */ jsxs3("div", { className: chat_default.searchBar, children: [
+      /* @__PURE__ */ jsx5(SearchIcon, {}),
+      /* @__PURE__ */ jsx5("span", { className: chat_default.searchPlaceholder, children: "Know more about this resume..." }),
+      /* @__PURE__ */ jsxs3("div", { className: chat_default.searchShortcut, children: [
+        /* @__PURE__ */ jsx5(CommandIcon, {}),
+        "K"
+      ] })
+    ] }) }),
+    /* @__PURE__ */ jsx5(Dialog.Root, { open: isOpen, onOpenChange: setIsOpen, children: /* @__PURE__ */ jsxs3(Dialog.Portal, { children: [
+      /* @__PURE__ */ jsx5(Dialog.Overlay, { className: chat_default.dialogOverlay }),
+      /* @__PURE__ */ jsx5(Dialog.Content, { className: chat_default.dialogContent, style: { width, maxHeight }, children: /* @__PURE__ */ jsx5(AnimatePresence, { children: isOpen && /* @__PURE__ */ jsxs3(
+        motion.div,
+        {
+          initial: { opacity: 0, y: -20 },
+          animate: { opacity: 1, y: 0 },
+          exit: { opacity: 0, y: -20 },
+          transition: { duration: 0.2 },
+          className: chat_default.chatContainer,
+          style: { height },
+          children: [
+            /* @__PURE__ */ jsxs3("div", { className: chat_default.chatHeader, children: [
+              /* @__PURE__ */ jsx5("h2", { className: chat_default.chatTitle, children: "Ask about this resume" }),
+              /* @__PURE__ */ jsx5(Dialog.Close, { className: chat_default.closeButton, children: /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M18 6L6 18M6 6l12 12" }) }) })
+            ] }),
+            /* @__PURE__ */ jsx5(MessageList, { messages }),
+            /* @__PURE__ */ jsx5(
+              ChatInput,
+              {
+                onSendMessage: handleSendMessage,
+                isLoading,
+                placeholder: "Ask anything about my experience..."
+              }
+            )
+          ]
+        }
+      ) }) })
+    ] }) })
+  ] });
 };
 
 // src/components/StandaloneChat.tsx
-import React6, { useEffect as useEffect5 } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useChatStore as useChatStore2 } from "@llmknow/core";
 
 // src/styles/standalone.module.css
 var standalone_default = {};
 
 // src/components/StandaloneChat.tsx
-import { Fragment, jsx as jsx6, jsxs as jsxs4 } from "react/jsx-runtime";
-var CloseIcon = () => /* @__PURE__ */ jsxs4("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [
-  /* @__PURE__ */ jsx6("path", { d: "M18 6L6 18", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }),
-  /* @__PURE__ */ jsx6("path", { d: "M6 6L18 18", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" })
-] });
-var ChatIcon = () => /* @__PURE__ */ jsx6("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsx6("path", { d: "M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }) });
+import { jsx as jsx6, jsxs as jsxs4 } from "react/jsx-runtime";
+var BackIcon = () => /* @__PURE__ */ jsx6("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsx6("path", { d: "M19 12H5M12 19L5 12L12 5", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }) });
 var StandaloneChat = ({
-  isOpen = false,
-  onOpenChange,
-  width = "360px",
-  height = "500px",
-  maxHeight = "80vh",
   engineConfig = {},
   theme: themeProp = "system",
-  enableHistory = true,
   onMessage,
   onError,
-  onStateChange
+  onStateChange,
+  onBack
 }) => {
-  const { setTheme } = useTheme();
-  const [internalIsOpen, setInternalIsOpen] = React6.useState(isOpen);
-  const isOpenState = onOpenChange ? isOpen : internalIsOpen;
-  const handleOpenChange = (open) => {
-    if (onOpenChange) {
-      onOpenChange(open);
-    } else {
-      setInternalIsOpen(open);
-    }
-  };
-  useEffect5(() => {
-    setTheme(themeProp);
-  }, [themeProp, setTheme]);
+  const { activeThemeClass } = useTheme();
   const { messages, isLoading, error, sendMessage } = useChatStore2();
-  useEffect5(() => {
-    onStateChange?.({ messages, isLoading, error });
-  }, [messages, isLoading, error, onStateChange]);
-  useEffect5(() => {
-    if (error) {
-      onError?.(error);
-    }
-  }, [error, onError]);
   const handleSendMessage = async (content) => {
     try {
-      onMessage?.({ id: "", role: "user", content, timestamp: Date.now() });
       await sendMessage(content, engineConfig);
+      onMessage?.(messages[messages.length - 1]);
     } catch (err) {
-      console.error("Error sending message:", err);
+      onError?.(err);
     }
   };
-  return /* @__PURE__ */ jsxs4(Fragment, { children: [
-    /* @__PURE__ */ jsx6(
-      "button",
+  return /* @__PURE__ */ jsxs4("div", { className: `${standalone_default.chatContainer} ${activeThemeClass}`, children: [
+    /* @__PURE__ */ jsxs4("header", { className: standalone_default.chatHeader, children: [
+      onBack && /* @__PURE__ */ jsxs4("button", { onClick: onBack, className: standalone_default.backButton, children: [
+        /* @__PURE__ */ jsx6(BackIcon, {}),
+        /* @__PURE__ */ jsx6("span", { children: "Back" })
+      ] }),
+      /* @__PURE__ */ jsx6("h1", { className: standalone_default.chatTitle, children: "Chat with AI" })
+    ] }),
+    /* @__PURE__ */ jsx6("div", { className: standalone_default.messageList, children: /* @__PURE__ */ jsx6(MessageList, { messages }) }),
+    /* @__PURE__ */ jsx6("div", { className: standalone_default.inputContainer, children: /* @__PURE__ */ jsx6(
+      ChatInput,
       {
-        className: standalone_default.chatTrigger,
-        onClick: () => handleOpenChange(true),
-        "aria-label": "Open chat",
-        children: /* @__PURE__ */ jsx6(ChatIcon, {})
+        onSendMessage: handleSendMessage,
+        isLoading,
+        placeholder: "Type your message..."
       }
-    ),
-    /* @__PURE__ */ jsx6(AnimatePresence, { children: isOpenState && /* @__PURE__ */ jsxs4(
-      motion.div,
-      {
-        className: standalone_default.standaloneChatContainer,
-        style: { width, height, maxHeight },
-        initial: { opacity: 0, scale: 0.9, x: 20, y: 20 },
-        animate: { opacity: 1, scale: 1, x: 0, y: 0 },
-        exit: { opacity: 0, scale: 0.9, x: 20, y: 20 },
-        transition: { type: "spring", stiffness: 300, damping: 30 },
-        children: [
-          /* @__PURE__ */ jsxs4("div", { className: standalone_default.standaloneChatHeader, children: [
-            /* @__PURE__ */ jsx6("h3", { className: standalone_default.standaloneChatTitle, children: "Chat" }),
-            /* @__PURE__ */ jsx6(
-              "button",
-              {
-                className: standalone_default.closeButton,
-                onClick: () => handleOpenChange(false),
-                "aria-label": "Close chat",
-                children: /* @__PURE__ */ jsx6(CloseIcon, {})
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsx6(MessageList, { messages }),
-          /* @__PURE__ */ jsx6(
-            ChatInput,
-            {
-              onSendMessage: handleSendMessage,
-              isLoading
-            }
-          )
-        ]
-      }
-    ) })
+    ) }),
+    error && /* @__PURE__ */ jsx6("div", { className: standalone_default.error, children: error.message })
   ] });
 };
 export {

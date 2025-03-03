@@ -77,6 +77,7 @@ interface StandaloneChatProps extends BaseChatProps {
     mode: 'standalone';
     isOpen?: boolean;
     onOpenChange?: (isOpen: boolean) => void;
+    onBack?: () => void;
 }
 /**
  * Combined chat component props
