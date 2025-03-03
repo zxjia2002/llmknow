@@ -1,0 +1,37 @@
+{
+  "name": "llmknow",
+  "version": "0.1.0",
+  "description": "A React component library for LLM chat interfaces",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter \"./examples/*\" run dev",
+    "build": "pnpm --filter \"./packages/*\" run build",
+    "test": "pnpm --filter \"./packages/*\" run test",
+    "lint": "pnpm --filter \"./packages/*\" run lint"
+  },
+  "keywords": [
+    "llm",
+    "chat",
+    "react",
+    "component"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

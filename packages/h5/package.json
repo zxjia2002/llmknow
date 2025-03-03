@@ -1,0 +1,40 @@
+{
+  "name": "@llmknow/h5",
+  "version": "0.1.0",
+  "description": "H5 optimized components for LLMKnow chat interfaces",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@llmknow/core": "workspace:*",
+    "@radix-ui/react-dialog": "^1.0.0",
+    "@radix-ui/react-popover": "^1.0.0",
+    "@vanilla-extract/css": "^1.14.0",
+    "framer-motion": "^10.0.0",
+    "react-markdown": "^9.0.0",
+    "shiki": "^0.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@vanilla-extract/vite-plugin": "^3.0.0",
+    "eslint": "^8.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+} 
