@@ -41,20 +41,20 @@ export const StandaloneChat: React.FC<StandaloneChatProps> = ({
             <span>Back</span>
           </button>
         )}
-        <h1 className={styles.chatTitle}>Chat with AI</h1>
+        {/* <h1 className={styles.chatTitle}>Chat with AI</h1> */}
       </header>
 
       <div className={styles.messageList}>
         <MessageList messages={messages} />
       </div>
 
-      <div className={styles.inputContainer}>
+      {/* <div className={styles.inputContainer}>
         <ChatInput
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           placeholder="Type your message..."
         />
-      </div>
+      </div> */}
 
       {error && (
         <div className={styles.error}>

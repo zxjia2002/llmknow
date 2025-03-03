@@ -106,7 +106,7 @@ export default function Chat() {
         {/* Main Chat Area */}
         <main className="flex flex-col h-screen bg-[#0C0C0C]">
           <header className="shrink-0 p-4 border-b border-geist-border bg-geist-surface flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Chat with Resume AI</h1>
+            <h1 className="text-xl font-semibold">Chat with My Resume AI</h1>
             <div className="flex items-center gap-2">
               <button className="p-2 text-white/70 hover:text-white transition-colors rounded-lg hover:bg-geist-surface-secondary">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

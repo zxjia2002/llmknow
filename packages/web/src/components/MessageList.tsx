@@ -30,7 +30,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     <div className={styles.messageList} ref={listRef}>
       {messages.length === 0 ? (
         <div className="text-center text-gray-500 p-4">
-          <p>No messages yet. Start a conversation!</p>
+          <p>What do you want to know about me today?</p>
         </div>
       ) : (
         messages.map((message) => (

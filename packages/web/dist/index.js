@@ -156,7 +156,7 @@ var MessageList = ({
       }
     }
   }, [messages, scrollToBottom]);
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: chat_default.messageList, ref: listRef, children: messages.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "text-center text-gray-500 p-4", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { children: "No messages yet. Start a conversation!" }) }) : messages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ChatMessage, { message }, message.id)) });
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: chat_default.messageList, ref: listRef, children: messages.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "text-center text-gray-500 p-4", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { children: "What do you want to know about me today?" }) }) : messages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ChatMessage, { message }, message.id)) });
 };
 
 // src/components/ChatInput.tsx
@@ -358,22 +358,11 @@ var StandaloneChat = ({
     }
   };
   return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: `${standalone_default.chatContainer} ${activeThemeClass}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("header", { className: standalone_default.chatHeader, children: [
-      onBack && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("button", { onClick: onBack, className: standalone_default.backButton, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(BackIcon, {}),
-        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: "Back" })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h1", { className: standalone_default.chatTitle, children: "Chat with AI" })
-    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("header", { className: standalone_default.chatHeader, children: onBack && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("button", { onClick: onBack, className: standalone_default.backButton, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(BackIcon, {}),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: "Back" })
+    ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: standalone_default.messageList, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MessageList, { messages }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: standalone_default.inputContainer, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      ChatInput,
-      {
-        onSendMessage: handleSendMessage,
-        isLoading,
-        placeholder: "Type your message..."
-      }
-    ) }),
     error && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: standalone_default.error, children: error.message })
   ] });
 };

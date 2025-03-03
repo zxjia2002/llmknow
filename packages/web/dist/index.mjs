@@ -114,7 +114,7 @@ var MessageList = ({
       }
     }
   }, [messages, scrollToBottom]);
-  return /* @__PURE__ */ jsx3("div", { className: chat_default.messageList, ref: listRef, children: messages.length === 0 ? /* @__PURE__ */ jsx3("div", { className: "text-center text-gray-500 p-4", children: /* @__PURE__ */ jsx3("p", { children: "No messages yet. Start a conversation!" }) }) : messages.map((message) => /* @__PURE__ */ jsx3(ChatMessage, { message }, message.id)) });
+  return /* @__PURE__ */ jsx3("div", { className: chat_default.messageList, ref: listRef, children: messages.length === 0 ? /* @__PURE__ */ jsx3("div", { className: "text-center text-gray-500 p-4", children: /* @__PURE__ */ jsx3("p", { children: "What do you want to know about me today?" }) }) : messages.map((message) => /* @__PURE__ */ jsx3(ChatMessage, { message }, message.id)) });
 };
 
 // src/components/ChatInput.tsx
@@ -316,22 +316,11 @@ var StandaloneChat = ({
     }
   };
   return /* @__PURE__ */ jsxs4("div", { className: `${standalone_default.chatContainer} ${activeThemeClass}`, children: [
-    /* @__PURE__ */ jsxs4("header", { className: standalone_default.chatHeader, children: [
-      onBack && /* @__PURE__ */ jsxs4("button", { onClick: onBack, className: standalone_default.backButton, children: [
-        /* @__PURE__ */ jsx6(BackIcon, {}),
-        /* @__PURE__ */ jsx6("span", { children: "Back" })
-      ] }),
-      /* @__PURE__ */ jsx6("h1", { className: standalone_default.chatTitle, children: "Chat with AI" })
-    ] }),
+    /* @__PURE__ */ jsx6("header", { className: standalone_default.chatHeader, children: onBack && /* @__PURE__ */ jsxs4("button", { onClick: onBack, className: standalone_default.backButton, children: [
+      /* @__PURE__ */ jsx6(BackIcon, {}),
+      /* @__PURE__ */ jsx6("span", { children: "Back" })
+    ] }) }),
     /* @__PURE__ */ jsx6("div", { className: standalone_default.messageList, children: /* @__PURE__ */ jsx6(MessageList, { messages }) }),
-    /* @__PURE__ */ jsx6("div", { className: standalone_default.inputContainer, children: /* @__PURE__ */ jsx6(
-      ChatInput,
-      {
-        onSendMessage: handleSendMessage,
-        isLoading,
-        placeholder: "Type your message..."
-      }
-    ) }),
     error && /* @__PURE__ */ jsx6("div", { className: standalone_default.error, children: error.message })
   ] });
 };
