@@ -27,6 +27,7 @@ interface ChatState {
  * Chat engine configuration
  */
 interface ChatEngineConfig {
+    botId?: string;
     apiKey?: string;
     apiUrl?: string;
     model?: string;
@@ -47,7 +48,7 @@ type ChatTheme = 'light' | 'dark' | 'system';
  */
 type ChatPosition = 'left' | 'right' | 'bottom';
 /**
- * Base chat component props
+ * Base chat props
  */
 interface BaseChatProps {
     theme?: ChatTheme;
@@ -63,15 +64,16 @@ interface BaseChatProps {
     onStateChange?: (state: ChatState) => void;
 }
 /**
- * Inline chat component props
+ * Inline chat props
  */
 interface InlineChatProps extends BaseChatProps {
     mode: 'inline';
     position?: ChatPosition;
     contextSelector?: string;
+    initialMessage?: string;
 }
 /**
- * Standalone chat component props
+ * Standalone chat props
  */
 interface StandaloneChatProps extends BaseChatProps {
     mode: 'standalone';
@@ -80,12 +82,12 @@ interface StandaloneChatProps extends BaseChatProps {
     onBack?: () => void;
 }
 /**
- * Combined chat component props
+ * Combined chat props
  */
 type ChatProps = InlineChatProps | StandaloneChatProps;
 
 /**
- * Chat service interface
+ * Interface for a chat engine
  */
 interface ChatEngine {
     streamResponse(message: string): AsyncGenerator<string>;
@@ -93,22 +95,33 @@ interface ChatEngine {
     abort(): void;
 }
 /**
- * Default implementation of the chat engine
+ * Default implementation of the chat engine using the Coze API
  */
 declare class DefaultChatEngine implements ChatEngine {
     private controller;
-    private config;
+    private readonly config;
+    private cozeClient;
+    private DEBUG;
     constructor(config: ChatEngineConfig);
     /**
-     * Stream a response from the AI model
+     * 获取当前配置
+     */
+    getConfig(): ChatEngineConfig;
+    /**
+     * 流式响应用户消息
+     * @param message 用户消息
+     * @returns 异步生成器，生成响应片段
      */
     streamResponse(message: string): AsyncGenerator<string>;
     /**
-     * Get a contextual response based on the message and context
+     * 获取基于上下文的响应
+     * @param message 用户消息
+     * @param context 上下文内容
+     * @returns 异步生成器，生成响应片段
      */
     getContextualResponse(message: string, context: string): AsyncGenerator<string>;
     /**
-     * Abort the current response
+     * 中止当前响应
      */
     abort(): void;
 }
@@ -144,6 +157,107 @@ declare class DefaultContextManager implements ContextManager {
      * Clear the context
      */
     clearContext(): void;
+}
+
+/**
+ * 浏览器特定的Coze客户端适配器
+ * 该文件避免了对Node.js特定模块的依赖，例如'ws'
+ */
+
+interface CozeMessage {
+    role: string;
+    content: string;
+    content_type: string;
+}
+interface CozeRequest {
+    bot_id: string;
+    messages: CozeMessage[];
+    stream?: boolean;
+    user_id?: string;
+}
+interface CozeResponse {
+    choices: {
+        message: {
+            content: string;
+        };
+    }[];
+}
+interface CozeStreamChunk {
+    event: string;
+    data: {
+        content?: string;
+    };
+}
+/**
+ * Coze API 错误类
+ */
+declare class CozeApiError extends Error {
+    status?: number;
+    code?: number;
+    responseText?: string;
+    constructor(message: string, options?: {
+        status?: number;
+        code?: number;
+        responseText?: string;
+    });
+}
+/**
+ * Coze API 客户端 - 浏览器版本
+ * 该版本避免了对Node.js特定模块的依赖
+ */
+declare class CozeBrowserClient {
+    private botId;
+    private accessToken;
+    private DEBUG;
+    private readonly API_PATHS;
+    private readonly API_BASE_URL;
+    private apiUrl;
+    private currentPathIndex;
+    /**
+     * 创建Coze API客户端
+     * @param botId Coze机器人ID
+     * @param accessToken Coze API密钥
+     */
+    constructor(botId: string, accessToken: string);
+    /**
+     * 切换API路径
+     * 如果某个API路径失败，可以调用此方法尝试下一个路径
+     * @returns 是否成功切换路径
+     */
+    switchApiPath(): boolean;
+    /**
+     * 在不同域名间切换 (.com/.cn)
+     * 仅用于兼容旧代码，现在使用switchApiPath代替
+     */
+    switchDomain(): boolean;
+    /**
+     * 将Message数组转换为Coze API格式的消息
+     */
+    private convertMessages;
+    /**
+     * 使用认证发送请求
+     */
+    private fetchWithAuth;
+    /**
+     * 发送聊天请求并获取响应
+     */
+    chat(messages: Message[], config?: ChatEngineConfig): Promise<string>;
+    /**
+     * 轮询聊天状态直到完成
+     * @param apiUrl API基础URL
+     * @param chatId 聊天ID
+     * @returns 完成后的聊天内容
+     */
+    private pollChatStatus;
+    /**
+     * 从响应中提取内容
+     * 支持多种响应格式
+     */
+    private extractContentFromResponse;
+    /**
+     * 流式聊天 - 返回一个异步生成器，逐步生成响应
+     */
+    streamChat(messages: Message[], config?: ChatEngineConfig): AsyncGenerator<string>;
 }
 
 /**
@@ -218,4 +332,4 @@ declare const getResponsiveConfig: (width: number, platform?: "web" | "h5") => R
  */
 declare const getWindowWidth: () => number;
 
-export { type BaseChatProps, type Breakpoints, type ChatEngine, type ChatEngineConfig, type ChatMode, type ChatPosition, type ChatProps, type ChatState, type ChatTheme, type ContextManager, DefaultChatEngine, DefaultContextManager, type InlineChatProps, type Message, type MessageRole, type ResponsiveConfig, type StandaloneChatProps, defaultBreakpoints, getResponsiveConfig, getWindowWidth, useChatStore };
+export { type BaseChatProps, type Breakpoints, type ChatEngine, type ChatEngineConfig, type ChatMode, type ChatPosition, type ChatProps, type ChatState, type ChatTheme, type ContextManager, CozeApiError, CozeBrowserClient, type CozeMessage, type CozeRequest, type CozeResponse, type CozeStreamChunk, DefaultChatEngine, DefaultContextManager, type InlineChatProps, type Message, type MessageRole, type ResponsiveConfig, type StandaloneChatProps, defaultBreakpoints, getResponsiveConfig, getWindowWidth, useChatStore };

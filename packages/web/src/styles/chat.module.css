@@ -266,4 +266,16 @@
   z-index: 1000;
   padding: 16px;
   gap: 16px;
+}
+
+.errorMessage {
+  margin: 8px;
+  padding: 10px 16px;
+  background-color: rgba(255, 59, 48, 0.1);
+  border-left: 3px solid #ff3b30;
+  border-radius: 4px;
+  color: #ff3b30;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
 } 

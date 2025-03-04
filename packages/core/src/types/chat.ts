@@ -27,7 +27,11 @@ export interface ChatState {
  * Chat engine configuration
  */
 export interface ChatEngineConfig {
+  // Coze configuration
+  botId?: string;
   apiKey?: string;
+  
+  // General configuration
   apiUrl?: string;
   model?: string;
   temperature?: number;
@@ -51,7 +55,7 @@ export type ChatTheme = 'light' | 'dark' | 'system';
 export type ChatPosition = 'left' | 'right' | 'bottom';
 
 /**
- * Base chat component props
+ * Base chat props
  */
 export interface BaseChatProps {
   // Appearance
@@ -75,16 +79,17 @@ export interface BaseChatProps {
 }
 
 /**
- * Inline chat component props
+ * Inline chat props
  */
 export interface InlineChatProps extends BaseChatProps {
   mode: 'inline';
   position?: ChatPosition;
   contextSelector?: string;
+  initialMessage?: string;
 }
 
 /**
- * Standalone chat component props
+ * Standalone chat props
  */
 export interface StandaloneChatProps extends BaseChatProps {
   mode: 'standalone';
@@ -94,6 +99,6 @@ export interface StandaloneChatProps extends BaseChatProps {
 }
 
 /**
- * Combined chat component props
+ * Combined chat props
  */
 export type ChatProps = InlineChatProps | StandaloneChatProps; 

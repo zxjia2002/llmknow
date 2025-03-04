@@ -48,9 +48,7 @@ var ThemeProvider = ({
 };
 
 // src/components/InlineChat.tsx
-import { useEffect as useEffect4, useState as useState3 } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect as useEffect4, useState as useState3, useRef as useRef3, useMemo } from "react";
 import { useChatStore, DefaultContextManager } from "@llmknow/core";
 
 // src/styles/chat.module.css
@@ -183,9 +181,10 @@ var ChatInput = ({
 };
 
 // src/components/InlineChat.tsx
-import { Fragment, jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
+import { v4 as uuidv4 } from "uuid";
+import { jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
 var SearchIcon = () => /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" }) });
-var CommandIcon = () => /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" }) });
+var CloseIcon = () => /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M18 6L6 18M6 6l12 12", strokeLinecap: "round", strokeLinejoin: "round" }) });
 var InlineChat = ({
   width = "600px",
   height = "400px",
@@ -196,99 +195,196 @@ var InlineChat = ({
   onMessage,
   onError,
   onStateChange,
-  contextSelector
+  contextSelector,
+  initialMessage
 }) => {
-  const [isOpen, setIsOpen] = useState3(false);
-  const { setTheme } = useTheme();
-  const [contextManager] = useState3(
-    () => enableContext ? new DefaultContextManager(contextSelector) : null
+  const { theme: activeTheme } = useTheme();
+  const chatInputRef = useRef3(null);
+  const [isExpanded, setIsExpanded] = useState3(false);
+  const messageEndRef = useRef3(null);
+  const { messages, isLoading, error, sendMessage, sendContextualMessage, abortResponse } = useChatStore(
+    (state) => ({
+      messages: state.messages,
+      isLoading: state.isLoading,
+      error: state.error,
+      sendMessage: state.sendMessage,
+      sendContextualMessage: state.sendContextualMessage,
+      abortResponse: state.abortResponse
+    })
   );
-  const { messages, isLoading, error, sendMessage, sendContextualMessage } = useChatStore();
-  useEffect4(() => {
-    setTheme(themeProp);
-  }, [themeProp, setTheme]);
-  useEffect4(() => {
-    if (enableContext && contextManager) {
-      const updateContext = () => {
-        contextManager.updateContextFromVisibleElements();
-      };
-      window.addEventListener("scroll", updateContext);
-      window.addEventListener("resize", updateContext);
-      updateContext();
-      return () => {
-        window.removeEventListener("scroll", updateContext);
-        window.removeEventListener("resize", updateContext);
-      };
+  const contextManager = useMemo(() => {
+    if (enableContext) {
+      return new DefaultContextManager(contextSelector);
     }
-  }, [enableContext, contextManager]);
+    return null;
+  }, [enableContext, contextSelector]);
+  useEffect4(() => {
+    if (contextManager) {
+      contextManager.updateContextFromVisibleElements();
+    }
+  }, [contextManager]);
+  useEffect4(() => {
+    if (initialMessage && !messages.length) {
+      console.log("=== InlineChat \u5904\u7406\u521D\u59CB\u6D88\u606F ===");
+      console.log("\u521D\u59CB\u6D88\u606F:", initialMessage);
+      handleSendMessage(initialMessage);
+    }
+  }, [initialMessage, messages.length]);
+  useEffect4(() => {
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+    if (onStateChange) {
+      onStateChange({ messages, isLoading, error });
+    }
+  }, [messages, isLoading, error, onStateChange]);
+  useEffect4(() => {
+    if (error && onError) {
+      console.error("=== InlineChat \u9519\u8BEF ===", error);
+      onError(error);
+    }
+  }, [error, onError]);
+  useEffect4(() => {
+    if (messages.length > 0 && onMessage) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant" && !lastMessage.isStreaming) {
+        console.log("=== InlineChat \u65B0\u6D88\u606F ===", {
+          id: lastMessage.id,
+          role: lastMessage.role,
+          contentLength: lastMessage.content.length
+        });
+        onMessage(lastMessage);
+      }
+    }
+  }, [messages, onMessage]);
+  useEffect4(() => {
+    if (isExpanded && chatInputRef.current) {
+      const inputElement = chatInputRef.current.querySelector("input, textarea");
+      if (inputElement instanceof HTMLElement) {
+        inputElement.focus();
+      }
+    }
+  }, [isExpanded]);
   useEffect4(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setIsOpen(true);
+        toggleExpanded();
       }
-      if (e.key === "Escape") {
-        setIsOpen(false);
+      if (e.key === "Escape" && isExpanded) {
+        e.preventDefault();
+        setIsExpanded(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-  const handleSendMessage = async (content) => {
-    try {
-      onMessage?.({ id: "", role: "user", content, timestamp: Date.now() });
-      if (enableContext && contextManager) {
-        const context = contextManager.getCurrentContext();
-        await sendContextualMessage(content, context, engineConfig);
-      } else {
-        await sendMessage(content, engineConfig);
-      }
-    } catch (err) {
-      console.error("Error sending message:", err);
+  }, [isExpanded]);
+  const updateContext = () => {
+    if (contextManager) {
+      console.log("=== InlineChat \u66F4\u65B0\u4E0A\u4E0B\u6587 ===");
+      contextManager.updateContextFromVisibleElements();
     }
   };
-  return /* @__PURE__ */ jsxs3(Fragment, { children: [
-    /* @__PURE__ */ jsx5("div", { className: chat_default.searchContainer, onClick: () => setIsOpen(true), children: /* @__PURE__ */ jsxs3("div", { className: chat_default.searchBar, children: [
-      /* @__PURE__ */ jsx5(SearchIcon, {}),
-      /* @__PURE__ */ jsx5("span", { className: chat_default.searchPlaceholder, children: "Know more about this resume..." }),
-      /* @__PURE__ */ jsxs3("div", { className: chat_default.searchShortcut, children: [
-        /* @__PURE__ */ jsx5(CommandIcon, {}),
-        "K"
-      ] })
-    ] }) }),
-    /* @__PURE__ */ jsx5(Dialog.Root, { open: isOpen, onOpenChange: setIsOpen, children: /* @__PURE__ */ jsxs3(Dialog.Portal, { children: [
-      /* @__PURE__ */ jsx5(Dialog.Overlay, { className: chat_default.dialogOverlay }),
-      /* @__PURE__ */ jsx5(Dialog.Content, { className: chat_default.dialogContent, style: { width, maxHeight }, children: /* @__PURE__ */ jsx5(AnimatePresence, { children: isOpen && /* @__PURE__ */ jsxs3(
-        motion.div,
+  const handleSendMessage = async (content) => {
+    console.log("=== InlineChat.handleSendMessage \u5F00\u59CB ===");
+    console.log("\u6D88\u606F\u5185\u5BB9:", content.substring(0, 50) + (content.length > 50 ? "..." : ""));
+    console.log("\u5F15\u64CE\u914D\u7F6E:", {
+      botId: engineConfig.botId ? engineConfig.botId.substring(0, 5) + "..." : "undefined",
+      apiKey: engineConfig.apiKey ? engineConfig.apiKey.substring(0, 5) + "..." : "undefined",
+      hasSystemPrompt: !!engineConfig.systemPrompt
+    });
+    try {
+      if (enableContext && contextManager) {
+        const context = contextManager.getCurrentContext();
+        console.log("\u4F7F\u7528\u4E0A\u4E0B\u6587\u53D1\u9001\u6D88\u606F\uFF0C\u4E0A\u4E0B\u6587\u957F\u5EA6:", context.length);
+        sendContextualMessage(content, context, engineConfig);
+      } else {
+        console.log("\u76F4\u63A5\u53D1\u9001\u6D88\u606F\uFF0C\u65E0\u4E0A\u4E0B\u6587");
+        sendMessage(content, engineConfig);
+      }
+      if (onMessage) {
+        const message = {
+          id: uuidv4(),
+          role: "user",
+          content,
+          timestamp: Date.now()
+        };
+        console.log("\u901A\u77E5\u7236\u7EC4\u4EF6\u65B0\u6D88\u606F");
+        onMessage(message);
+      }
+      console.log("=== InlineChat.handleSendMessage \u5B8C\u6210 ===");
+    } catch (err) {
+      console.error("=== InlineChat.handleSendMessage \u9519\u8BEF ===", err);
+      if (onError) {
+        onError(err instanceof Error ? err : new Error(String(err)));
+      }
+    }
+  };
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+    if (!isExpanded && contextManager) {
+      updateContext();
+    }
+  };
+  return /* @__PURE__ */ jsx5(
+    "div",
+    {
+      className: chat_default.inlineChatContainer,
+      style: {
+        width,
+        maxHeight: isExpanded ? maxHeight : "auto"
+      },
+      "data-theme": activeTheme,
+      children: !isExpanded ? /* @__PURE__ */ jsxs3(
+        "button",
         {
-          initial: { opacity: 0, y: -20 },
-          animate: { opacity: 1, y: 0 },
-          exit: { opacity: 0, y: -20 },
-          transition: { duration: 0.2 },
-          className: chat_default.chatContainer,
-          style: { height },
+          className: chat_default.searchBar,
+          onClick: toggleExpanded,
+          "aria-label": "Open chat",
           children: [
-            /* @__PURE__ */ jsxs3("div", { className: chat_default.chatHeader, children: [
-              /* @__PURE__ */ jsx5("h2", { className: chat_default.chatTitle, children: "Ask about this resume" }),
-              /* @__PURE__ */ jsx5(Dialog.Close, { className: chat_default.closeButton, children: /* @__PURE__ */ jsx5("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx5("path", { d: "M18 6L6 18M6 6l12 12" }) }) })
+            /* @__PURE__ */ jsxs3("div", { className: chat_default.searchPlaceholder, children: [
+              /* @__PURE__ */ jsx5(SearchIcon, {}),
+              /* @__PURE__ */ jsx5("span", { children: "Ask me anything..." })
             ] }),
-            /* @__PURE__ */ jsx5(MessageList, { messages }),
-            /* @__PURE__ */ jsx5(
-              ChatInput,
-              {
-                onSendMessage: handleSendMessage,
-                isLoading,
-                placeholder: "Ask anything about my experience..."
-              }
-            )
+            /* @__PURE__ */ jsx5("div", { className: chat_default.searchShortcut, children: /* @__PURE__ */ jsx5("span", { children: "/" }) })
           ]
         }
-      ) }) })
-    ] }) })
-  ] });
+      ) : /* @__PURE__ */ jsxs3("div", { className: chat_default.chatContainer, children: [
+        /* @__PURE__ */ jsxs3("div", { className: chat_default.chatHeader, children: [
+          /* @__PURE__ */ jsx5("div", { className: chat_default.chatTitle, children: "Ask me" }),
+          /* @__PURE__ */ jsx5(
+            "button",
+            {
+              className: chat_default.closeButton,
+              onClick: toggleExpanded,
+              "aria-label": "Close chat",
+              children: /* @__PURE__ */ jsx5(CloseIcon, {})
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs3("div", { className: chat_default.messageList, children: [
+          /* @__PURE__ */ jsx5(MessageList, { messages, scrollToBottom: true }),
+          error && /* @__PURE__ */ jsx5("div", { className: chat_default.errorMessage, children: /* @__PURE__ */ jsxs3("span", { children: [
+            "Error: ",
+            error.message
+          ] }) }),
+          /* @__PURE__ */ jsx5("div", { ref: messageEndRef })
+        ] }),
+        /* @__PURE__ */ jsx5("div", { className: chat_default.inputContainer, ref: chatInputRef, children: /* @__PURE__ */ jsx5(
+          ChatInput,
+          {
+            onSendMessage: handleSendMessage,
+            isLoading,
+            placeholder: "Type a message..."
+          }
+        ) })
+      ] })
+    }
+  );
 };
 
 // src/components/StandaloneChat.tsx
+import { useEffect as useEffect5 } from "react";
 import { useChatStore as useChatStore2 } from "@llmknow/core";
 
 // src/styles/standalone.module.css
@@ -307,12 +403,48 @@ var StandaloneChat = ({
 }) => {
   const { activeThemeClass } = useTheme();
   const { messages, isLoading, error, sendMessage } = useChatStore2();
+  console.log("=== StandaloneChat \u521D\u59CB\u5316 ===");
+  console.log("\u5F15\u64CE\u914D\u7F6E:", {
+    botId: engineConfig.botId ? engineConfig.botId.substring(0, 5) + "..." : "undefined",
+    apiKey: engineConfig.apiKey ? engineConfig.apiKey.substring(0, 5) + "..." : "undefined",
+    hasSystemPrompt: !!engineConfig.systemPrompt
+  });
+  useEffect5(() => {
+    if (onStateChange) {
+      onStateChange({ messages, isLoading, error });
+    }
+  }, [messages, isLoading, error, onStateChange]);
+  useEffect5(() => {
+    if (error && onError) {
+      console.error("=== StandaloneChat \u9519\u8BEF ===", error);
+      onError(error);
+    }
+  }, [error, onError]);
+  useEffect5(() => {
+    if (messages.length > 0 && onMessage) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant" && !lastMessage.isStreaming) {
+        console.log("=== StandaloneChat \u65B0\u6D88\u606F ===", {
+          id: lastMessage.id,
+          role: lastMessage.role,
+          contentLength: lastMessage.content.length
+        });
+        onMessage(lastMessage);
+      }
+    }
+  }, [messages, onMessage]);
   const handleSendMessage = async (content) => {
+    console.log("=== StandaloneChat.handleSendMessage \u5F00\u59CB ===");
+    console.log("\u6D88\u606F\u5185\u5BB9:", content.substring(0, 50) + (content.length > 50 ? "..." : ""));
     try {
+      console.log("\u53D1\u9001\u6D88\u606F\u5230\u804A\u5929\u5F15\u64CE");
       await sendMessage(content, engineConfig);
-      onMessage?.(messages[messages.length - 1]);
+      console.log("=== StandaloneChat.handleSendMessage \u5B8C\u6210 ===");
     } catch (err) {
-      onError?.(err);
+      console.error("=== StandaloneChat.handleSendMessage \u9519\u8BEF ===", err);
+      if (onError) {
+        onError(err);
+      }
     }
   };
   return /* @__PURE__ */ jsxs4("div", { className: `${standalone_default.chatContainer} ${activeThemeClass}`, children: [

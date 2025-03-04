@@ -91,8 +91,6 @@ var ThemeProvider = ({
 
 // src/components/InlineChat.tsx
 var import_react5 = require("react");
-var Dialog = __toESM(require("@radix-ui/react-dialog"));
-var import_framer_motion = require("framer-motion");
 var import_core = require("@llmknow/core");
 
 // src/styles/chat.module.css
@@ -225,9 +223,10 @@ var ChatInput = ({
 };
 
 // src/components/InlineChat.tsx
+var import_uuid = require("uuid");
 var import_jsx_runtime5 = require("react/jsx-runtime");
 var SearchIcon = () => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" }) });
-var CommandIcon = () => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" }) });
+var CloseIcon = () => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M18 6L6 18M6 6l12 12", strokeLinecap: "round", strokeLinejoin: "round" }) });
 var InlineChat = ({
   width = "600px",
   height = "400px",
@@ -238,99 +237,196 @@ var InlineChat = ({
   onMessage,
   onError,
   onStateChange,
-  contextSelector
+  contextSelector,
+  initialMessage
 }) => {
-  const [isOpen, setIsOpen] = (0, import_react5.useState)(false);
-  const { setTheme } = useTheme();
-  const [contextManager] = (0, import_react5.useState)(
-    () => enableContext ? new import_core.DefaultContextManager(contextSelector) : null
+  const { theme: activeTheme } = useTheme();
+  const chatInputRef = (0, import_react5.useRef)(null);
+  const [isExpanded, setIsExpanded] = (0, import_react5.useState)(false);
+  const messageEndRef = (0, import_react5.useRef)(null);
+  const { messages, isLoading, error, sendMessage, sendContextualMessage, abortResponse } = (0, import_core.useChatStore)(
+    (state) => ({
+      messages: state.messages,
+      isLoading: state.isLoading,
+      error: state.error,
+      sendMessage: state.sendMessage,
+      sendContextualMessage: state.sendContextualMessage,
+      abortResponse: state.abortResponse
+    })
   );
-  const { messages, isLoading, error, sendMessage, sendContextualMessage } = (0, import_core.useChatStore)();
-  (0, import_react5.useEffect)(() => {
-    setTheme(themeProp);
-  }, [themeProp, setTheme]);
-  (0, import_react5.useEffect)(() => {
-    if (enableContext && contextManager) {
-      const updateContext = () => {
-        contextManager.updateContextFromVisibleElements();
-      };
-      window.addEventListener("scroll", updateContext);
-      window.addEventListener("resize", updateContext);
-      updateContext();
-      return () => {
-        window.removeEventListener("scroll", updateContext);
-        window.removeEventListener("resize", updateContext);
-      };
+  const contextManager = (0, import_react5.useMemo)(() => {
+    if (enableContext) {
+      return new import_core.DefaultContextManager(contextSelector);
     }
-  }, [enableContext, contextManager]);
+    return null;
+  }, [enableContext, contextSelector]);
+  (0, import_react5.useEffect)(() => {
+    if (contextManager) {
+      contextManager.updateContextFromVisibleElements();
+    }
+  }, [contextManager]);
+  (0, import_react5.useEffect)(() => {
+    if (initialMessage && !messages.length) {
+      console.log("=== InlineChat \u5904\u7406\u521D\u59CB\u6D88\u606F ===");
+      console.log("\u521D\u59CB\u6D88\u606F:", initialMessage);
+      handleSendMessage(initialMessage);
+    }
+  }, [initialMessage, messages.length]);
+  (0, import_react5.useEffect)(() => {
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+    if (onStateChange) {
+      onStateChange({ messages, isLoading, error });
+    }
+  }, [messages, isLoading, error, onStateChange]);
+  (0, import_react5.useEffect)(() => {
+    if (error && onError) {
+      console.error("=== InlineChat \u9519\u8BEF ===", error);
+      onError(error);
+    }
+  }, [error, onError]);
+  (0, import_react5.useEffect)(() => {
+    if (messages.length > 0 && onMessage) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant" && !lastMessage.isStreaming) {
+        console.log("=== InlineChat \u65B0\u6D88\u606F ===", {
+          id: lastMessage.id,
+          role: lastMessage.role,
+          contentLength: lastMessage.content.length
+        });
+        onMessage(lastMessage);
+      }
+    }
+  }, [messages, onMessage]);
+  (0, import_react5.useEffect)(() => {
+    if (isExpanded && chatInputRef.current) {
+      const inputElement = chatInputRef.current.querySelector("input, textarea");
+      if (inputElement instanceof HTMLElement) {
+        inputElement.focus();
+      }
+    }
+  }, [isExpanded]);
   (0, import_react5.useEffect)(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setIsOpen(true);
+        toggleExpanded();
       }
-      if (e.key === "Escape") {
-        setIsOpen(false);
+      if (e.key === "Escape" && isExpanded) {
+        e.preventDefault();
+        setIsExpanded(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-  const handleSendMessage = async (content) => {
-    try {
-      onMessage?.({ id: "", role: "user", content, timestamp: Date.now() });
-      if (enableContext && contextManager) {
-        const context = contextManager.getCurrentContext();
-        await sendContextualMessage(content, context, engineConfig);
-      } else {
-        await sendMessage(content, engineConfig);
-      }
-    } catch (err) {
-      console.error("Error sending message:", err);
+  }, [isExpanded]);
+  const updateContext = () => {
+    if (contextManager) {
+      console.log("=== InlineChat \u66F4\u65B0\u4E0A\u4E0B\u6587 ===");
+      contextManager.updateContextFromVisibleElements();
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: chat_default.searchContainer, onClick: () => setIsOpen(true), children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.searchBar, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(SearchIcon, {}),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: chat_default.searchPlaceholder, children: "Know more about this resume..." }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.searchShortcut, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CommandIcon, {}),
-        "K"
-      ] })
-    ] }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Dialog.Root, { open: isOpen, onOpenChange: setIsOpen, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Dialog.Portal, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Dialog.Overlay, { className: chat_default.dialogOverlay }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Dialog.Content, { className: chat_default.dialogContent, style: { width, maxHeight }, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_framer_motion.AnimatePresence, { children: isOpen && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
-        import_framer_motion.motion.div,
+  const handleSendMessage = async (content) => {
+    console.log("=== InlineChat.handleSendMessage \u5F00\u59CB ===");
+    console.log("\u6D88\u606F\u5185\u5BB9:", content.substring(0, 50) + (content.length > 50 ? "..." : ""));
+    console.log("\u5F15\u64CE\u914D\u7F6E:", {
+      botId: engineConfig.botId ? engineConfig.botId.substring(0, 5) + "..." : "undefined",
+      apiKey: engineConfig.apiKey ? engineConfig.apiKey.substring(0, 5) + "..." : "undefined",
+      hasSystemPrompt: !!engineConfig.systemPrompt
+    });
+    try {
+      if (enableContext && contextManager) {
+        const context = contextManager.getCurrentContext();
+        console.log("\u4F7F\u7528\u4E0A\u4E0B\u6587\u53D1\u9001\u6D88\u606F\uFF0C\u4E0A\u4E0B\u6587\u957F\u5EA6:", context.length);
+        sendContextualMessage(content, context, engineConfig);
+      } else {
+        console.log("\u76F4\u63A5\u53D1\u9001\u6D88\u606F\uFF0C\u65E0\u4E0A\u4E0B\u6587");
+        sendMessage(content, engineConfig);
+      }
+      if (onMessage) {
+        const message = {
+          id: (0, import_uuid.v4)(),
+          role: "user",
+          content,
+          timestamp: Date.now()
+        };
+        console.log("\u901A\u77E5\u7236\u7EC4\u4EF6\u65B0\u6D88\u606F");
+        onMessage(message);
+      }
+      console.log("=== InlineChat.handleSendMessage \u5B8C\u6210 ===");
+    } catch (err) {
+      console.error("=== InlineChat.handleSendMessage \u9519\u8BEF ===", err);
+      if (onError) {
+        onError(err instanceof Error ? err : new Error(String(err)));
+      }
+    }
+  };
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+    if (!isExpanded && contextManager) {
+      updateContext();
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    "div",
+    {
+      className: chat_default.inlineChatContainer,
+      style: {
+        width,
+        maxHeight: isExpanded ? maxHeight : "auto"
+      },
+      "data-theme": activeTheme,
+      children: !isExpanded ? /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+        "button",
         {
-          initial: { opacity: 0, y: -20 },
-          animate: { opacity: 1, y: 0 },
-          exit: { opacity: 0, y: -20 },
-          transition: { duration: 0.2 },
-          className: chat_default.chatContainer,
-          style: { height },
+          className: chat_default.searchBar,
+          onClick: toggleExpanded,
+          "aria-label": "Open chat",
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.chatHeader, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h2", { className: chat_default.chatTitle, children: "Ask about this resume" }),
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Dialog.Close, { className: chat_default.closeButton, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M18 6L6 18M6 6l12 12" }) }) })
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.searchPlaceholder, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(SearchIcon, {}),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: "Ask me anything..." })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(MessageList, { messages }),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
-              ChatInput,
-              {
-                onSendMessage: handleSendMessage,
-                isLoading,
-                placeholder: "Ask anything about my experience..."
-              }
-            )
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: chat_default.searchShortcut, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { children: "/" }) })
           ]
         }
-      ) }) })
-    ] }) })
-  ] });
+      ) : /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.chatContainer, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.chatHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: chat_default.chatTitle, children: "Ask me" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            "button",
+            {
+              className: chat_default.closeButton,
+              onClick: toggleExpanded,
+              "aria-label": "Close chat",
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(CloseIcon, {})
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: chat_default.messageList, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(MessageList, { messages, scrollToBottom: true }),
+          error && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: chat_default.errorMessage, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("span", { children: [
+            "Error: ",
+            error.message
+          ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { ref: messageEndRef })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: chat_default.inputContainer, ref: chatInputRef, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          ChatInput,
+          {
+            onSendMessage: handleSendMessage,
+            isLoading,
+            placeholder: "Type a message..."
+          }
+        ) })
+      ] })
+    }
+  );
 };
 
 // src/components/StandaloneChat.tsx
+var import_react6 = require("react");
 var import_core2 = require("@llmknow/core");
 
 // src/styles/standalone.module.css
@@ -349,12 +445,48 @@ var StandaloneChat = ({
 }) => {
   const { activeThemeClass } = useTheme();
   const { messages, isLoading, error, sendMessage } = (0, import_core2.useChatStore)();
+  console.log("=== StandaloneChat \u521D\u59CB\u5316 ===");
+  console.log("\u5F15\u64CE\u914D\u7F6E:", {
+    botId: engineConfig.botId ? engineConfig.botId.substring(0, 5) + "..." : "undefined",
+    apiKey: engineConfig.apiKey ? engineConfig.apiKey.substring(0, 5) + "..." : "undefined",
+    hasSystemPrompt: !!engineConfig.systemPrompt
+  });
+  (0, import_react6.useEffect)(() => {
+    if (onStateChange) {
+      onStateChange({ messages, isLoading, error });
+    }
+  }, [messages, isLoading, error, onStateChange]);
+  (0, import_react6.useEffect)(() => {
+    if (error && onError) {
+      console.error("=== StandaloneChat \u9519\u8BEF ===", error);
+      onError(error);
+    }
+  }, [error, onError]);
+  (0, import_react6.useEffect)(() => {
+    if (messages.length > 0 && onMessage) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "assistant" && !lastMessage.isStreaming) {
+        console.log("=== StandaloneChat \u65B0\u6D88\u606F ===", {
+          id: lastMessage.id,
+          role: lastMessage.role,
+          contentLength: lastMessage.content.length
+        });
+        onMessage(lastMessage);
+      }
+    }
+  }, [messages, onMessage]);
   const handleSendMessage = async (content) => {
+    console.log("=== StandaloneChat.handleSendMessage \u5F00\u59CB ===");
+    console.log("\u6D88\u606F\u5185\u5BB9:", content.substring(0, 50) + (content.length > 50 ? "..." : ""));
     try {
+      console.log("\u53D1\u9001\u6D88\u606F\u5230\u804A\u5929\u5F15\u64CE");
       await sendMessage(content, engineConfig);
-      onMessage?.(messages[messages.length - 1]);
+      console.log("=== StandaloneChat.handleSendMessage \u5B8C\u6210 ===");
     } catch (err) {
-      onError?.(err);
+      console.error("=== StandaloneChat.handleSendMessage \u9519\u8BEF ===", err);
+      if (onError) {
+        onError(err);
+      }
     }
   };
   return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: `${standalone_default.chatContainer} ${activeThemeClass}`, children: [
